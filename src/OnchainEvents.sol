@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "forge-std/Script.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
@@ -47,20 +46,11 @@ contract OnchainEvents is Ownable, ReentrancyGuard {
 
     /// @notice verify attendance
     function verifyAttendance(
-        address account,
-        bytes32 leaf
+        bytes32[] memory proof,
+        bytes32 root_, // root attendance
+        bytes32 leaf // root event
     ) public nonReentrant returns (bool attend) {
-        require(account != address(0), "OnchainEvent: zero account receiver");
-        bytes32 root = MerkleProof.processProof(
-            allAttendances[account].proof,
-            leaf
-        );
-        attend = MerkleProof.verify(allAttendances[account].proof, root, leaf);
-        require(
-            attend,
-            "OnchainEvent: this account is not registered in the event"
-        );
-
+        attend = MerkleProof.verify(proof, root_, leaf);
         return attend;
     }
 }
