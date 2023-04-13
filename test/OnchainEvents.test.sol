@@ -1,32 +1,39 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "src/OnchainEvents.sol";
+import {OnchainEvents} from "src/OnchainEvents.sol";
 
 contract CounterScript is Test {
     OnchainEvents onchainEventContract;
-    bytes32[] eventMerkleRoot;
-    bytes32[] attendanceMerkleRoot;
+    address pedro = address(0x1);
+    address manolo = address(0x2);
 
     function setUp() public {
+        vm.startPrank(pedro);
         onchainEventContract = new OnchainEvents();
+        vm.stopPrank();
     }
 
-    function testRegisterOnchainEvent() public {
-        attendanceMerkleRoot = new bytes32[](3);
-        eventMerkleRoot[0] = vm.parseBytes32(
-            "0x4246af7740fec2fd7b47be7797b0a0d87611b4375edd61e99b14bcf300071ac0"
-        );
-        eventMerkleRoot[1] = vm.parseBytes32(
-            "0xf75299d4c5bcdcab2672668efaaea4e0c5d046c451c45b40d0c63b5538811ee1"
-        );
-        eventMerkleRoot[2] = vm.parseBytes32(
-            "0x321ec32866f415cb8acc70cf613eca8f2e07b4da532d58a171539a633682b370"
-        );
-        vm.startPrank(address(0x2));
-        onchainEventContract.attendEvent(attendanceMerkleRoot);
-        vm.stopPrank();
+    function testValidProofSupplied() public {
+        // Merkle tree created from leaves ['a', 'b', 'c'].
+        // Leaf is 'a'.
+        bytes32[] memory proof = new bytes32[](2);
+        proof[
+            0
+        ] = 0xb5553de315e0edf504d9150af82dafa5c4667fa618ed0a6f19c69b41166c5510;
+        proof[
+            1
+        ] = 0x0b42b6393c1f53060fe3ddbfcd7aadcca894465a5a438f69c87d790b2299b9b2;
+        bytes32 leaf = 0x3ac225168df54212a25c1c01fd35bebfea408fdac2e31ddd6f80a4bbf9a5f1cb;
+        assertEq(this.verify(proof, leaf), true);
+    }
+
+    function verify(
+        bytes32[] calldata proof,
+        bytes32 leaf
+    ) external returns (bool) {
+        return onchainEventContract.identifyVerification(proof, leaf);
     }
 }

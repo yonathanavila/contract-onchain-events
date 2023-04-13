@@ -3,6 +3,7 @@ pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {MerkleProofLib} from "solmate/utils/MerkleProofLib.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /// @title  Onchain Events, management secury and transparency on attendance
@@ -31,9 +32,7 @@ contract OnchainEvents is Ownable, ReentrancyGuard {
     event AttendanceRegistered(address account, bytes32[] proof);
 
     /// @notice register new Onchain Event
-    function registerOnchainEvent(
-        bytes32[] memory proof
-    ) external nonReentrant {
+    function onchainAttestation(bytes32[] memory proof) external nonReentrant {
         allEvents[_msgSender()] = EventStruct(proof);
         emit OnchainEventRegistered(_msgSender(), proof);
     }
@@ -45,12 +44,19 @@ contract OnchainEvents is Ownable, ReentrancyGuard {
     }
 
     /// @notice verify attendance
-    function verifyAttendance(
-        bytes32[] memory proof,
-        bytes32 root_, // root attendance
+    function identifyVerification(
+        bytes32[] calldata proof,
         bytes32 leaf // root event
-    ) public nonReentrant returns (bool attend) {
-        attend = MerkleProof.verify(proof, root_, leaf);
-        return attend;
+    ) public nonReentrant returns (bool) {
+        bytes32 root = getRoot(proof, leaf);
+        return MerkleProofLib.verify(proof, root, leaf);
+    }
+
+    /// @notice get root
+    function getRoot(
+        bytes32[] calldata proof,
+        bytes32 leaf
+    ) internal returns (bytes32) {
+        return MerkleProof.processProof(proof, leaf);
     }
 }
