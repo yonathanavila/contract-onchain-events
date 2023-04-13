@@ -13,50 +13,52 @@ import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProo
 contract OnchainEvents is Ownable, ReentrancyGuard {
     /// @notice the event struct
     struct EventStruct {
-        bytes32[] proof;
+        bytes32 leaf;
     }
     /// @notice the attendace struct
     struct AttendanceStruct {
-        bytes32[] proof;
+        bytes32 leaf;
     }
-
     /// @notice from `address` to `EventStruct` of all events
     mapping(address => EventStruct) internal allEvents;
     /// @notice from `address` to `AttendanceStruct` of all attendances
     mapping(address => AttendanceStruct) internal allAttendances;
 
     /// @notice event Onchain Event registered
-    event OnchainEventRegistered(address account, bytes32[] proof);
-
+    event OnchainEventRegistered(address account, bytes32 leaf);
     /// @notice event attendance registered
-    event AttendanceRegistered(address account, bytes32[] proof);
+    event AttendanceRegistered(address account, bytes32 leaf);
 
     /// @notice register new Onchain Event
-    function onchainAttestation(bytes32[] memory proof) external nonReentrant {
-        allEvents[_msgSender()] = EventStruct(proof);
-        emit OnchainEventRegistered(_msgSender(), proof);
+    function onchainAttestation(bytes32 leaf) public nonReentrant {
+        allEvents[_msgSender()] = EventStruct(leaf);
+        emit OnchainEventRegistered(_msgSender(), leaf);
     }
 
     /// @notice attend a new event
-    function attendEvent(bytes32[] memory proof) public nonReentrant {
-        allAttendances[_msgSender()] = AttendanceStruct(proof);
-        emit AttendanceRegistered(_msgSender(), proof);
+    function attendEvent(bytes32 leaf) public nonReentrant {
+        allAttendances[_msgSender()] = AttendanceStruct(leaf);
+        emit AttendanceRegistered(_msgSender(), leaf);
     }
 
     /// @notice verify attendance
     function identifyVerification(
-        bytes32[] calldata proof,
-        bytes32 leaf // root event
+        bytes32[] calldata proof
     ) public nonReentrant returns (bool) {
-        bytes32 root = getRoot(proof, leaf);
-        return MerkleProofLib.verify(proof, root, leaf);
+        bytes32 root = getRoot(proof, allAttendances[_msgSender()].leaf);
+        return
+            MerkleProofLib.verify(
+                proof,
+                root,
+                allAttendances[_msgSender()].leaf
+            );
     }
 
     /// @notice get root
     function getRoot(
         bytes32[] calldata proof,
         bytes32 leaf
-    ) internal returns (bytes32) {
+    ) internal pure returns (bytes32) {
         return MerkleProof.processProof(proof, leaf);
     }
 }

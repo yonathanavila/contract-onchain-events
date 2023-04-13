@@ -17,6 +17,7 @@ contract CounterScript is Test {
     }
 
     function testValidProofSupplied() public {
+        vm.startPrank(manolo);
         // Merkle tree created from leaves ['a', 'b', 'c'].
         // Leaf is 'a'.
         bytes32[] memory proof = new bytes32[](2);
@@ -27,13 +28,17 @@ contract CounterScript is Test {
             1
         ] = 0x0b42b6393c1f53060fe3ddbfcd7aadcca894465a5a438f69c87d790b2299b9b2;
         bytes32 leaf = 0x3ac225168df54212a25c1c01fd35bebfea408fdac2e31ddd6f80a4bbf9a5f1cb;
-        assertEq(this.verify(proof, leaf), true);
+
+        this.register(leaf);
+        assertEq(this.verify(proof), true);
+        vm.stopPrank();
     }
 
-    function verify(
-        bytes32[] calldata proof,
-        bytes32 leaf
-    ) external returns (bool) {
-        return onchainEventContract.identifyVerification(proof, leaf);
+    function verify(bytes32[] memory proof) external returns (bool) {
+        return onchainEventContract.identifyVerification(proof);
+    }
+
+    function register(bytes32 leaf) external {
+        onchainEventContract.attendEvent(leaf);
     }
 }
