@@ -30,12 +30,15 @@ contract CounterScript is Test {
         bytes32 leaf = 0x3ac225168df54212a25c1c01fd35bebfea408fdac2e31ddd6f80a4bbf9a5f1cb;
 
         this.register(leaf);
-        assertEq(this.verify(proof), true);
+        assertEq(this.verify(proof, manolo), true);
         vm.stopPrank();
     }
 
-    function verify(bytes32[] memory proof) external returns (bool) {
-        return onchainEventContract.identifyVerification(proof);
+    function verify(
+        bytes32[] memory proof,
+        address to
+    ) external returns (bool) {
+        return onchainEventContract.identifyVerification(proof, to);
     }
 
     function register(bytes32 leaf) external {

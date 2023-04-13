@@ -14,6 +14,7 @@ contract OnchainEvents is Ownable, ReentrancyGuard {
     /// @notice the event struct
     struct EventStruct {
         bytes32 leaf;
+        address organizer;
     }
     /// @notice the attendace struct
     struct AttendanceStruct {
@@ -31,27 +32,25 @@ contract OnchainEvents is Ownable, ReentrancyGuard {
 
     /// @notice register new Onchain Event
     function onchainAttestation(bytes32 leaf) public nonReentrant {
-        allEvents[_msgSender()] = EventStruct(leaf);
-        emit OnchainEventRegistered(_msgSender(), leaf);
+        address organizer = _msgSender();
+        allEvents[organizer] = EventStruct(leaf, organizer);
+        emit OnchainEventRegistered(organizer, leaf);
     }
 
     /// @notice attend a new event
     function attendEvent(bytes32 leaf) public nonReentrant {
-        allAttendances[_msgSender()] = AttendanceStruct(leaf);
-        emit AttendanceRegistered(_msgSender(), leaf);
+        address client = _msgSender();
+        allAttendances[client] = AttendanceStruct(leaf);
+        emit AttendanceRegistered(client, leaf);
     }
 
     /// @notice verify attendance
     function identifyVerification(
-        bytes32[] calldata proof
+        bytes32[] calldata proof,
+        address to
     ) public nonReentrant returns (bool) {
-        bytes32 root = getRoot(proof, allAttendances[_msgSender()].leaf);
-        return
-            MerkleProofLib.verify(
-                proof,
-                root,
-                allAttendances[_msgSender()].leaf
-            );
+        bytes32 root = getRoot(proof, allAttendances[to].leaf);
+        return MerkleProofLib.verify(proof, root, allAttendances[to].leaf);
     }
 
     /// @notice get root
