@@ -53,7 +53,7 @@ contract OnchainEvents is Ownable, ReentrancyGuard {
         return MerkleProofLib.verify(proof, root, allAttendances[to].leaf);
     }
 
-    /// @notice get root
+    /// @notice get the merkle root hash
     function getRoot(
         bytes32[] calldata proof,
         bytes32 leaf
