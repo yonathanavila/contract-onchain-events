@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {MerkleProofLib} from "solmate/utils/MerkleProofLib.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /// @title  Onchain Events, management secury and transparency on attendance
@@ -21,9 +20,9 @@ contract OnchainEvents is Ownable, ReentrancyGuard {
         bytes32 leaf;
     }
     /// @notice from `address` to `EventStruct` of all events
-    mapping(address => EventStruct) internal allEvents;
+    mapping(address => EventStruct) internal _allEvents;
     /// @notice from `address` to `AttendanceStruct` of all attendances
-    mapping(address => AttendanceStruct) internal allAttendances;
+    mapping(address => AttendanceStruct) internal _allAttendances;
 
     /// @notice event Onchain Event registered
     event OnchainEventRegistered(address account, bytes32 leaf);
@@ -33,15 +32,16 @@ contract OnchainEvents is Ownable, ReentrancyGuard {
     /// @notice register new Onchain Event
     function onchainAttestation(bytes32 leaf) public nonReentrant {
         address organizer = _msgSender();
-        allEvents[organizer] = EventStruct(leaf, organizer);
+        _allEvents[organizer] = EventStruct(leaf, organizer);
         emit OnchainEventRegistered(organizer, leaf);
     }
 
     /// @notice attend a new event
     function attendEvent(bytes32 leaf) public nonReentrant {
         address client = _msgSender();
-        allAttendances[client] = AttendanceStruct(leaf);
-        emit AttendanceRegistered(client, leaf);
+        bytes32 encodeLeaf = keccak256(abi.encode(leaf));
+        _allAttendances[client] = AttendanceStruct(encodeLeaf);
+        emit AttendanceRegistered(client, encodeLeaf);
     }
 
     /// @notice verify attendance
@@ -49,12 +49,13 @@ contract OnchainEvents is Ownable, ReentrancyGuard {
         bytes32[] calldata proof,
         address to
     ) public nonReentrant returns (bool) {
-        bytes32 root = getRoot(proof, allAttendances[to].leaf);
-        return MerkleProofLib.verify(proof, root, allAttendances[to].leaf);
+        bytes32 root = _getRoot(proof, _allAttendances[to].leaf);
+        return
+            MerkleProof.verifyCalldata(proof, root, _allAttendances[to].leaf);
     }
 
     /// @notice get the merkle root hash
-    function getRoot(
+    function _getRoot(
         bytes32[] calldata proof,
         bytes32 leaf
     ) internal pure returns (bytes32) {
